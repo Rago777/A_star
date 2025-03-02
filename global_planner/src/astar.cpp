@@ -65,10 +65,15 @@ bool AStarExpansion::calculatePotentials(unsigned char* costs, double start_x, d
         if (i == goal_i)
             return true;
 
-        add(costs, potential, potential[i], i + 1, end_x, end_y);
-        add(costs, potential, potential[i], i - 1, end_x, end_y);
-        add(costs, potential, potential[i], i + nx_, end_x, end_y);
-        add(costs, potential, potential[i], i - nx_, end_x, end_y);
+        // Expansion in 8 directions (4 directions+4 diagonals)
+        add(costs, potential, potential[i], i + 1, end_x, end_y);    // right
+        add(costs, potential, potential[i], i - 1, end_x, end_y);    // left
+        add(costs, potential, potential[i], i + nx_, end_x, end_y);  // up
+        add(costs, potential, potential[i], i - nx_, end_x, end_y);  // down
+        add(costs, potential, potential[i], i + nx_ + 1, end_x, end_y);  // down right
+        add(costs, potential, potential[i], i + nx_ - 1, end_x, end_y);  // down left
+        add(costs, potential, potential[i], i - nx_ + 1, end_x, end_y);  // up right
+        add(costs, potential, potential[i], i - nx_ - 1, end_x, end_y);  // up left
 
         cycle++;
     }
@@ -87,11 +92,24 @@ void AStarExpansion::add(unsigned char* costs, float* potential, float prev_pote
     if(costs[next_i]>=lethal_cost_ && !(unknown_ && costs[next_i]==costmap_2d::NO_INFORMATION))
         return;
 
-    potential[next_i] = p_calc_->calculatePotential(potential, costs[next_i] + neutral_cost_, next_i, prev_potential);
+    // Calculate grid coordinates
     int x = next_i % nx_, y = next_i / nx_;
-    float distance = abs(end_x - x) + abs(end_y - y);
+    int prev_x = (next_i - 1) % nx_, prev_y = (next_i - 1) / nx_;
 
-    queue_.push_back(Index(next_i, potential[next_i] + distance * neutral_cost_));
+    // Determine whether it is a diagonal movement
+    bool is_diagonal = (abs(prev_x - x) + abs(prev_y - y) == 2);
+    float movement_cost = is_diagonal ? sqrt(2) * neutral_cost_ : neutral_cost_;
+
+    potential[next_i] = p_calc_->calculatePotential(potential, costs[next_i] + movement_cost + neutral_cost_, next_i, prev_potential);
+
+    // Calculate Octile Distance as h (n)
+    int dx = abs(end_x - x);
+    int dy = abs(end_y - y);
+    // Neutral_comst_=50 (default value), representing the basic cost of moving between grids.
+    float octile_heuristic = neutral_cost_ * (dx + dy) + (sqrt(2) - 2) * neutral_cost_ * std::min(dx, dy);
+
+    // Join the queue
+    queue_.push_back(Index(next_i, potential[next_i] + octile_heuristic));
     std::push_heap(queue_.begin(), queue_.end(), greater1());
 }
 

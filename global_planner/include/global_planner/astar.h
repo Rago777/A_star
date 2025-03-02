@@ -42,6 +42,7 @@
 #include <global_planner/expander.h>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 namespace global_planner {
 class Index {

@@ -295,9 +295,12 @@ bool GlobalPlanner::makePlan(const geometry_msgs::PoseStamped& start, const geom
     if(outline_map_)
         outlineMap(costmap_->getCharMap(), nx, ny, costmap_2d::LETHAL_OBSTACLE);
 
+    ros::Time before_astar = ros::Time::now();
     bool found_legal = planner_->calculatePotentials(costmap_->getCharMap(), start_x, start_y, goal_x, goal_y,
                                                     nx * ny * 2, potential_array_);
-
+    ros::Duration astar_time = ros::Time::now() - before_astar;
+    // ROS_INFO("Time of global plan(A_star) is: %.3f milliseconds", astar_time.toNSec() / 1000000.0);
+    // ROS_INFO("Time of global plan(A_star) is: %.9f seconds", astar_time.toSec());
     if(!old_navfn_behavior_)
         planner_->clearEndpoint(costmap_->getCharMap(), potential_array_, goal_x_i, goal_y_i, 2);
     if(publish_potential_)
